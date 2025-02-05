@@ -77,11 +77,12 @@ string retrieveChatHistory(const string& username) {
 // 메시지를 모든 클라이언트에게 브로드캐스트 (보낸 클라이언트를 제외)
 void broadcastMessage(const string& sender, const string& message, SOCKET senderSocket) {
     lock_guard<mutex> lock(mtx);
-    cout<< "[" + sender + "] [" + (online_users[sender] ? "Online" : "Offline") + "] : " + message << endl;
+    string recive_messge = "[" + sender + "] [" + (online_users[sender] ? "Online" : "Offline") + "] : " + message;
+    cout<< recive_messge << endl;
 
     for (SOCKET client : clients) {
         if (client != senderSocket) {
-            send(client, message.c_str(), message.size(), 0);
+            send(client, recive_messge.c_str(), recive_messge.size(), 0);
         }
     }
 }
