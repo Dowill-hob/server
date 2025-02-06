@@ -97,17 +97,19 @@ string retrieveChatHistory(const string& username) {
 
     while (getline(file, line)) {
         size_t firstComma = line.find(",");
-        size_t secondComma = line.find(",", firstComma + 1);
-        if (secondComma != string::npos) {
-            string sender = line.substr(firstComma + 1, secondComma = firstComma - 1);
-            if (sender == username)
-            {
-                history += line + "\n";
+        if (firstComma != string::npos) {
+            string sender = line.substr(0, firstComma);  // 올바르게 sender 추출
+            string message = line.substr(firstComma + 1);  //  메시지 부분 추출
+
+            if (sender == username) {
+                history += sender + ": " + message + "\n";  // 형식 개선
             }
         }
     }
     file.close();
-    return history.empty() ? "No chat history found.\n" : history;
+
+    // 기록이 없을 경우 기본 메시지 반환
+    return (history == "=== Chat History ===\n") ? "No chat history found.\n" : history;
 }
 
 // 메시지를 모든 클라이언트에게 브로드캐스트 (보낸 클라이언트를 제외)
@@ -123,10 +125,10 @@ void broadcastMessage(const string& sender, const string& message, SOCKET sender
 
     // 시간형식 변경
     ostringstream timeStream;
-    timeStream << put_time(&local_tm, "%Y,%m,%d %H:%M");
+    timeStream << put_time(&local_tm, "%Y.%m.%d %H:%M");
 
-    string recive_message = "\n======================================================================\n";
-    recive_message += "보낸 시간 : " + timeStream.str() + "  보낸 사람 : " + sender + " [" + (online_users[sender] ? "Online" : "Offline") + "]\n";
+    string recive_message = "======================================================================\n";
+    recive_message += "보낸 시간 : " + timeStream.str() + "\t보낸 사람 : " + sender + " [" + (online_users[sender] ? "Online" : "Offline") + "]" + "\n";
     recive_message += "보낸 메시지 : " + message + "\n";
     recive_message += "======================================================================\n";
     
