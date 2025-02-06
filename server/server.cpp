@@ -3,9 +3,13 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <sstream>
 #include <map>
 #include <mutex>
+#include <ws2tcpip.h>
 #include <winsock2.h>
+#include <chrono>
+#include <iomanip>
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #pragma comment(lib, "ws2_32.lib")
 
@@ -15,6 +19,32 @@ mutex mtx;
 map<string, string> user_credentials; // username -> password
 map<string, bool> online_users;       // username -> online status
 vector<SOCKET> clients;               // 현재 접속 중인 클라이언트 리스트
+// 서버 아이피 주소
+//void printServerIP() {
+//    char hostname[256];
+//    if (gethostname(hostname, sizeof(hostname)) == SOCKET_ERROR) {
+//        cout << "Failed to get hostname. Error: " << WSAGetLastError() << endl;
+//        return;
+//    }
+//
+//    struct addrinfo hints = {}, * res;
+//    hints.ai_family = AF_INET;  // IPv4
+//    hints.ai_socktype = SOCK_STREAM;
+//    hints.ai_protocol = IPPROTO_TCP;
+//
+//    if (getaddrinfo(hostname, NULL, &hints, &res) != 0) {
+//        cout << "Failed to get IP address." << endl;
+//        return;
+//    }
+//
+//    // 첫 번째 IPv4 주소 출력
+//    char ipStr[INET_ADDRSTRLEN];
+//    sockaddr_in* addr = (sockaddr_in*)res->ai_addr;
+//    inet_ntop(AF_INET, &addr->sin_addr, ipStr, sizeof(ipStr));
+//    cout << "Server IP Address: " << ipStr << endl;
+//
+//    freeaddrinfo(res);
+//}
 
 // 사용자 데이터 로드
 void loadUsers() {
@@ -66,8 +96,14 @@ string retrieveChatHistory(const string& username) {
     string line, history = "=== Chat History ===\n";
 
     while (getline(file, line)) {
-        if (line.find(username) != string::npos) {
-            history += line + "\n";
+        size_t firstComma = line.find(",");
+        size_t secondComma = line.find(",", firstComma + 1);
+        if (secondComma != string::npos) {
+            string sender = line.substr(firstComma + 1, secondComma = firstComma - 1);
+            if (sender == username)
+            {
+                history += line + "\n";
+            }
         }
     }
     file.close();
@@ -77,12 +113,28 @@ string retrieveChatHistory(const string& username) {
 // 메시지를 모든 클라이언트에게 브로드캐스트 (보낸 클라이언트를 제외)
 void broadcastMessage(const string& sender, const string& message, SOCKET senderSocket) {
     lock_guard<mutex> lock(mtx);
-    string recive_messge = "[" + sender + "] [" + (online_users[sender] ? "Online" : "Offline") + "] : " + message;
-    cout<< recive_messge << endl;
+    // 현재 시간 가져오기
+    auto now = chrono::system_clock::now();
+    time_t now_time = chrono::system_clock::to_time_t(now);
+
+    // local_tm 초기화 후 사용
+    tm local_tm;
+    localtime_s(&local_tm, &now_time);
+
+    // 시간형식 변경
+    ostringstream timeStream;
+    timeStream << put_time(&local_tm, "%Y,%m,%d %H:%M");
+
+    string recive_message = "\n======================================================================\n";
+    recive_message += "보낸 시간 : " + timeStream.str() + "  보낸 사람 : " + sender + " [" + (online_users[sender] ? "Online" : "Offline") + "]\n";
+    recive_message += "보낸 메시지 : " + message + "\n";
+    recive_message += "======================================================================\n";
+    
+    cout<< recive_message << endl;
 
     for (SOCKET client : clients) {
         if (client != senderSocket) {
-            send(client, recive_messge.c_str(), recive_messge.size(), 0);
+            send(client, recive_message.c_str(), recive_message.size(), 0);
         }
     }
 }
