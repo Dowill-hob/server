@@ -157,7 +157,7 @@ void handleClient(SOCKET client_socket) {
         memset(buffer, 0, sizeof(buffer));
         recv(client_socket, buffer, sizeof(buffer), 0);
         string choice(buffer);
-        choice.erase(choice.find_last_not_of(" \n\r\t") + 1);
+        choice.erase(choice.find_last_not_of(" \n\r\t") + 1);// 문자열 username에서 공백, 개행, 리턴, 탭 등의 문자를 제거하느 코드
 
         if (choice == "1") { // 회원가입
             send(client_socket, "Enter new username: ", strlen("Enter new username: "), 0);
@@ -171,9 +171,15 @@ void handleClient(SOCKET client_socket) {
             recv(client_socket, buffer, sizeof(buffer), 0);
             password = buffer;
             password.erase(password.find_last_not_of(" \n\r\t") + 1);
-
-            saveUser(username, password);
-            send(client_socket, "Registration successful\n", 25, 0);
+            if (user_credentials.find(username) != user_credentials.end() && user_credentials[username] == password)
+            {
+                send(client_socket, "There is a duplicate username.", strlen("There is a duplicate username."), 0);
+            }
+            else
+            {
+                saveUser(username, password);
+                send(client_socket, "Registration successful\n", 25, 0);
+            }
         }
         else if (choice == "2") { // 로그인
             send(client_socket, "Enter username: ", 16, 0);
@@ -222,8 +228,21 @@ void handleClient(SOCKET client_socket) {
             recv(client_socket, buffer, sizeof(buffer), 0);
             username = buffer;
             username.erase(username.find_last_not_of(" \n\r\t") + 1);
-            deleteUser(username);
-            send(client_socket, "Account deleted\n", 17, 0);
+
+            send(client_socket, "Enter password to delete: ", 16, 0);
+            memset(buffer, 0, sizeof(buffer));
+            recv(client_socket, buffer, sizeof(buffer), 0);
+            password = buffer;
+            password.erase(password.find_last_not_of(" \n\r\t") + 1);
+            if (user_credentials.find(username) != user_credentials.end() && user_credentials[username] == password)
+            {
+                deleteUser(username);
+                send(client_socket, "Account deleted\n", 17, 0);
+            }
+            else
+            {
+                send(client_socket, "Please enter the correct information", strlen("Please enter the correct information"), 0);
+            }
         }
         else if (choice == "4") { // 채팅 내역검색
             send(client_socket, "Enter username to search chat history: ",strlen("Enter username to search chat history: "),0);
