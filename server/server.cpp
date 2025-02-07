@@ -194,8 +194,8 @@ void handleClient(SOCKET client_socket) {
             password = buffer;
             password.erase(password.find_last_not_of(" \n\r\t") + 1);
 
-            cout << "[DEBUG] Received Username: " << username << ", Password: " << password << endl;
-            cout << "[DEBUG] Stored Password for " << username << ": " << user_credentials[username] << endl;
+            cout << "[DEBUG] Received Username: " << username << endl;
+            cout << "[DEBUG] Recived user Password: " << password << endl;
 
             if (user_credentials.find(username) != user_credentials.end() && user_credentials[username] == password) {
                 send(client_socket, "Login successful\n", strlen("Login successful\n"), 0);
@@ -220,6 +220,7 @@ void handleClient(SOCKET client_socket) {
             }
             else {
                 send(client_socket, "Invalid credentials\n", 21, 0);
+                send(client_socket, "Try again\n", strlen("Try again\n"), 0);
             }
         }
         else if (choice == "3") { // 회원탈퇴
@@ -229,7 +230,7 @@ void handleClient(SOCKET client_socket) {
             username = buffer;
             username.erase(username.find_last_not_of(" \n\r\t") + 1);
 
-            send(client_socket, "Enter password to delete: ", 16, 0);
+            send(client_socket, "Enter password to delete: ", strlen("Enter password to delete: "), 0);
             memset(buffer, 0, sizeof(buffer));
             recv(client_socket, buffer, sizeof(buffer), 0);
             password = buffer;
